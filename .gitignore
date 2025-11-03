@@ -1,1 +1,7 @@
+# Files
+Cargo.lock
+.DS_Store
+
+# Ignore build artifacts
 /target
+/doc/build
