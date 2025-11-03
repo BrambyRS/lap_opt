@@ -1,3 +1,6 @@
+# File types
+*.csv
+
 # Files
 Cargo.lock
 .DS_Store
