@@ -1,5 +1,77 @@
 \documentclass[12pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{bm}
+\usepackage{hyperref}
+\usepackage{cleveref}
+
+% Page layout
+\geometry{a4paper, margin=3cm}
+
+% Paragraph formatting
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{\baselineskip}
+
 \begin{document}
+
+\tableofcontents
+
+\section{Background on Collocation}
+Assume some arbitrary dynamic system with state $\bm{x} \in \mathbb{R}^{n_x}$ and external input $\bm{u} \in \mathbb{R}^{n_u}$,
+can have its dynamics described by the differential equation
+\begin{equation} \label{eq:dynamics}
+    \dot{\bm{x}}(t) = f(\bm{x}(t),\, \bm{u}(t),\, t),
+\end{equation}
+where $t$ is the time and $f: \mathbb{R}^{n_x} \times \mathbb{R}^{n_u} \times \mathbb{R} \to \mathbb{R}^{n_x}$ is a function defining the state derivative $\dot{\bm{x}}(t)$.
+A question that will often arise when dealing with such systems is to find a control trajectory $\bm{u}(t)$ that is optimal
+with respect to some cost functional $J(\bm{x}(t),\, \bm{u}(t))$ over a time horizon $[t_0,\, t_f]$ given some initial state $\bm{x}(t_0) = \bm{x}_0$, and possibly some additional constaints on the states and inputs.
+The cost functional $\Phi$ may have either a Lagrange term, Mayer term, or both, and can generally be expressed as
+\begin{equation} \label{eq:cost_functional}
+    J(\bm{x}(t),\, \bm{u}(t)) = \underbrace{\int_{t_0}^{t_f} L(\bm{x}(t),\, \bm{u}(t),\, t) \, dt}_{\text{Lagrange term}} + \underbrace{\Phi(\bm{x}(t_f))}_{\text{Mayer term}},
+\end{equation}
+where $L: \mathbb{R}^{n_x} \times \mathbb{R}^{n_u} \times \mathbb{R} \to \mathbb{R}$ is a cost integrand and $\Phi: \mathbb{R}^{n_x} \to \mathbb{R}$ is some terminal cost.
+
+From this, we can formulate the optimal control problem (OCP)
+\begin{subequations} \label{eq:ocp}
+\begin{align}
+    \underset{\bm{u}(t)}{\text{min}} \quad & J(\bm{x}(t),\, \bm{u}(t)) \label{eq:ocp_cost} \\
+    \text{subject to} \quad & \dot{\bm{x}}(t) = f(\bm{x}(t),\, \bm{u}(t),\, t), \quad t \in [t_0,\, t_f], \label{eq:ocp_dynamics} \\
+    & \bm{x}(t_0) = \bm{x}_0, \label{eq:ocp_initial} \\
+    & \bm{g}_L \leq \bm{g}(\bm{x}(t),\, \bm{u}(t),\, t) \leq \bm{g}_U, \quad t \in [t_0,\, t_f], \label{eq:ocp_constraints}
+\end{align}
+\end{subequations}
+where $\bm{g} : \mathbb{R}^{n_x} \times \mathbb{R}^{n_u} \times \mathbb{R} \to \mathbb{R}^{n_g}$ is a vector of constraint functions with lower and upper bounds $\bm{g}_L,\; \bm{g}_U \in \mathbb{R}^{n_g}$ respectively.
+
+In general, solving OCPs on the form of \eqref{eq:ocp} is not trivial and often requires numerical methods.
+One such approach is to transcribe the continuous-time OCP into a finite-dimensional nonlinear programming (NLP) problem using a direct collocation method.
+This involves discretising the time horizon $[t_0,\, t_f]$ into $N_{el}$ intervals with boundaries at the points $t_0 = \tau_0 < \tau_1 < \ldots < \tau_N = t_f$.
+Section \ref{sec:colloc} describes how the states and inputs are approximated within each interval and Section \ref{sec:nlp_formulation} outlines the formulation of the resulting NLP.
+
+\subsection{Collocation Points} \label{sec:colloc}
+Within each interval $[\tau_k,\, \tau_{k+1}]$, the state and input trajectories are approximated as polynomials.
+Specifically, Lagrange polynomials are used along with the state values $\bm{x}(\xi_i)$, where $\xi_i \in [\tau_k,\, \tau_{k+1}]$ are the $N_c$ collocation points.
+There are several methods for choosing the collocation points, but in this work, we use flipped Legendre-Gauss-Radau (fLGR) points which are described in more detail in Section \ref{sec:flgr_points}.
+
+The polynomial approximation of the state within the interval $[\tau_k,\, \tau_{k+1}]$ is given by
+\begin{equation} \label{eq:state_polynomial}
+    \bm{x}(t) \approx \sum_{i=0}^{N_c} \bm{x}(\xi_{i}) L_i(\zeta(t)),
+\end{equation}
+where $\zeta: [\tau_k,\, \tau_{k+1}] \to [-1,\, 1]$ is the mapping defined by
+\begin{equation}
+    \zeta(t) = \frac{2(t - \tau_k)}{\tau_{k+1} - \tau_k} - 1,
+\end{equation}
+and the Lagrange basis polynomials are defined by
+\begin{equation} \label{eq:lagrange_basis}
+    L_i(\zeta) = \prod_{\substack{j=0 \\ j \neq
+    i}}^{N_c} \frac{\zeta - \zeta_j}{\zeta_i - \zeta_j}, \quad i = 0,\, \ldots,\, N_c, \quad \zeta \in [-1,\, 1].
+\end{equation}
+
+\subsubsection{Flipped Legendre-Gauss-Radau Points} \label{sec:flgr_points}
+
+\subsection{Formulation of the Nonlinear Program} \label{sec:nlp_formulation}
+
 \section{The Models}
 \subsection{Point Mass Model}
 The Point Mass Model (PMM) is a very simplified representation of a vehicle as a planar point mass.
