@@ -6,6 +6,9 @@
 \usepackage{bm}
 \usepackage{hyperref}
 \usepackage{cleveref}
+\usepackage{tikz}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
 
 % Page layout
 \geometry{a4paper, margin=3cm}
@@ -14,10 +17,37 @@
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{\baselineskip}
 
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{Project APEX}
+\renewcommand{\footrulewidth}{0.4pt}
+\fancyfoot[RE,LO]{\thepage}
+
 \begin{document}
 
+\begin{titlepage} % Suppresses displaying the page number on the title page and the subsequent page counts as page 1
+
+	\raggedleft % Right align the title page
+
+	\rule{1pt}{\textheight} % Vertical line
+	\hspace{0.05\textwidth} % Whitespace between the vertical line and title page text
+	\parbox[b]{0.75\textwidth}{ % Paragraph box for holding the title page text, adjust the width to move the title page left or right on the page
+
+		{\Huge\bfseries Project APEX}\\[2\baselineskip] % Title
+		{\large\textit{A Laptime Optimisation Tool}}\\[4\baselineskip] % Subtitle or further description
+		{\Large\textsc{Ranbir Singh}} % Author name, lower case for consistent small caps
+
+		\vspace{0.5\textheight} % Whitespace between the title block and the publisher
+
+		{\noindent \today} \\[\baselineskip] % Publisher and logo
+	}
+
+\end{titlepage}
+
+\newpage
 \tableofcontents
 
+\newpage
 \section{Background on Collocation}
 Assume some arbitrary dynamic system with state $\bm{x} \in \mathbb{R}^{n_x}$ and external input $\bm{u} \in \mathbb{R}^{n_u}$,
 can have its dynamics described by the differential equation
