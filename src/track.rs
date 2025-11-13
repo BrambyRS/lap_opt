@@ -9,6 +9,23 @@ pub struct Track {
     n_segments: usize,
 }
 
+impl std::fmt::Display for Track {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        return match self.is_closed {
+            true => write!(
+                f,
+                "Closed Track: {} of Length {:.2} m with {} Segments",
+                self.name, self.length, self.n_segments
+            ),
+            false => write!(
+                f,
+                "Open Track: {} of Length {:.2} m with {} Segments",
+                self.name, self.length, self.n_segments
+            ),
+        };
+    }
+}
+
 impl Track {
     pub fn new(
         name: String,
