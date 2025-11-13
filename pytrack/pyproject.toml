@@ -1,7 +1,0 @@
-[project]
-name = "pytrack"
-version = "0.1.0"
-description = "Tool to generate .trk files for Apex lap simulation"
-readme = "README.md"
-requires-python = ">=3.13"
-dependencies = []
