@@ -211,7 +211,37 @@ impl Track {
     }
 }
 
-// Support function
+// Support functions
+fn interp_segment(points: &Vec<(f64, f64, f64)>, sq: &Vec<f64>) -> Vec<(f64, f64, f64)> {
+    // Validate inputs
+    for s in sq {
+        assert!(*s >= 0.0 && *s <= 1.0, "s must be in [0, 1]");
+    }
+    assert!(
+        points.len() == 4,
+        "points must have exactly 4 control points"
+    );
+
+    let mut result: Vec<(f64, f64, f64)> = Vec::with_capacity(sq.len());
+    for s in sq {
+        let x = points[0].0 * (1.0 - s).powi(3)
+            + 3.0 * points[1].0 * s * (1.0 - s).powi(2)
+            + 3.0 * points[2].0 * s.powi(2) * (1.0 - s)
+            + points[3].0 * s.powi(3);
+        let y = points[0].1 * (1.0 - s).powi(3)
+            + 3.0 * points[1].1 * s * (1.0 - s).powi(2)
+            + 3.0 * points[2].1 * s.powi(2) * (1.0 - s)
+            + points[3].1 * s.powi(3);
+        let width = points[0].2 * (1.0 - s).powi(3)
+            + 3.0 * points[1].2 * s * (1.0 - s).powi(2)
+            + 3.0 * points[2].2 * s.powi(2) * (1.0 - s)
+            + points[3].2 * s.powi(3);
+
+        result.push((x, y, width));
+    }
+
+    return result;
+}
 
 #[cfg(test)]
 mod tests {
@@ -228,5 +258,16 @@ mod tests {
         assert_eq!(track.points[1], (40.0, 0.0, 5.0));
         assert_eq!(track.points[2], (80.0, 0.0, 5.0));
         assert_eq!(track.points[3], (120.0, 0.0, 5.0));
+    }
+
+    #[test]
+    fn test_interp_straight() {
+        let track: Track = Track::straight(120.0, 5.0);
+        let points: Vec<(f64, f64, f64)> = track.points();
+
+        let results: Vec<(f64, f64, f64)> = interp_segment(&points[0..4].to_vec(), &vec![0.5]);
+        assert!((results[0].0 - 60.0).abs() < 1e-6);
+        assert!((results[0].1 - 0.0).abs() < 1e-6);
+        assert!((results[0].2 - 5.0).abs() < 1e-6);
     }
 }
