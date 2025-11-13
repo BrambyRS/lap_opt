@@ -4,11 +4,11 @@ pub struct Track {
     // Private
     is_closed: bool,
     length: f64,
-    points: Vec<(f64, f64)>,
+    points: Vec<(f64, f64, f64)>, // (x, y, width)
 }
 
 impl Track {
-    pub fn new(name: String, is_closed: bool, length: f64, points: Vec<(f64, f64)>) -> Self {
+    pub fn new(name: String, is_closed: bool, length: f64, points: Vec<(f64, f64, f64)>) -> Self {
         Self {
             name,
             is_closed,
@@ -70,11 +70,12 @@ impl Track {
         let num_segments: u32 = u32::from_le_bytes([data[129], data[130], data[131], data[132]]);
         let num_points: usize = (num_segments as usize) * 3;
 
-        let mut points: Vec<(f64, f64)> = Vec::with_capacity(num_points);
+        let mut points: Vec<(f64, f64, f64)> = Vec::with_capacity(num_points);
 
         let mut offset = 133;
+        let increment: usize = 24; // Each point is 3 f64s = 24 bytes
         for _ in 0..num_points {
-            if offset + 16 > data_len {
+            if offset + increment > data_len {
                 panic!("Unexpected end of file while reading track points");
             }
 
@@ -98,8 +99,18 @@ impl Track {
                 data[offset + 14],
                 data[offset + 15],
             ]);
-            points.push((x, y));
-            offset += 16;
+            let width: f64 = f64::from_le_bytes([
+                data[offset + 16],
+                data[offset + 17],
+                data[offset + 18],
+                data[offset + 19],
+                data[offset + 20],
+                data[offset + 21],
+                data[offset + 22],
+                data[offset + 23],
+            ]);
+            points.push((x, y, width));
+            offset += increment;
         }
 
         return Self::new(name, is_closed, 0.0, points);
@@ -116,7 +127,7 @@ impl Track {
     }
 
     #[allow(dead_code)]
-    pub fn points(&self) -> Vec<(f64, f64)> {
+    pub fn points(&self) -> Vec<(f64, f64, f64)> {
         return self.points.clone();
     }
 }
