@@ -55,6 +55,41 @@ impl Track {
         return Self::new(name, false, length, 1, points);
     }
 
+    pub fn double_lane_change() -> Self {
+        let n_segments: usize = 5;
+
+        let points: Vec<(f64, f64, f64)> = vec![
+            (0.0, 0.0, 3.0),
+            (2.0, 0.0, 3.0),
+            (4.0, 0.0, 3.0),
+            (6.0, 0.0, 3.0),
+            // Lane change 4.5 meters left over 13.5 meters
+            (9.0, 0.0, 3.0),
+            (16.5, 4.5, 3.0),
+            (19.5, 4.5, 3.0),
+            // Straight for 11 meters
+            (21.5, 4.5, 3.0),
+            (26.5, 4.5, 3.0),
+            (30.5, 4.5, 3.0),
+            // Lane change 4.5 meters right over 13.5 meters
+            (33.5, 4.5, 3.0),
+            (41.0, 0.0, 3.0),
+            (44.0, 0.0, 3.0),
+            // Straight for 6 meters
+            (46.0, 0.0, 3.0),
+            (48.0, 0.0, 3.0),
+            (50.0, 0.0, 3.0),
+        ];
+
+        return Self::new(
+            "Double Lane Change".to_string(),
+            false,
+            0.0,
+            n_segments,
+            points,
+        );
+    }
+
     pub fn read_from_file(file_path: &str) -> Self {
         let data: Vec<u8> = match std::fs::read(file_path) {
             Ok(b) => b,
@@ -173,6 +208,8 @@ impl Track {
         return self.points.clone();
     }
 }
+
+// Support function
 
 #[cfg(test)]
 mod tests {
