@@ -43,6 +43,7 @@ impl Track {
         }
     }
 
+    #[allow(dead_code)]
     pub fn straight(length: f64, width: f64) -> Self {
         let points: Vec<(f64, f64, f64)> = vec![
             (0.0, 0.0, width),
@@ -55,6 +56,7 @@ impl Track {
         return Self::new(name, false, length, 1, points);
     }
 
+    #[allow(dead_code)]
     pub fn double_lane_change() -> Self {
         let n_segments: usize = 5;
 
