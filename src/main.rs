@@ -31,4 +31,11 @@ fn main() {
 
     let test_track =
         track::Track::read_from_file("/Users/rsingh/Repos/lap_opt/tracks/gbg_city_arena.trk");
+
+    let points: Vec<(f64, f64, f64)> = test_track.points();
+    let mut track_csv = File::create("track_points.csv").unwrap();
+    writeln!(track_csv, "x,y,width").unwrap();
+    for (x, y, width) in points {
+        writeln!(track_csv, "{},{},{}", x, y, width).unwrap();
+    }
 }
