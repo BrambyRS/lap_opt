@@ -1,20 +1,41 @@
 pub struct Track {
     // Public
     pub name: String,
-    // Private
+    // Private with getters
     is_closed: bool,
     length: f64,
     points: Vec<(f64, f64, f64)>, // (x, y, width)
+    // Private without getters
+    n_segments: usize,
 }
 
 impl Track {
-    pub fn new(name: String, is_closed: bool, length: f64, points: Vec<(f64, f64, f64)>) -> Self {
+    pub fn new(
+        name: String,
+        is_closed: bool,
+        length: f64,
+        n_segments: usize,
+        points: Vec<(f64, f64, f64)>,
+    ) -> Self {
         Self {
             name,
             is_closed,
             length,
+            n_segments,
             points,
         }
+    }
+
+    pub fn straight(length: f64, width: f64) -> Self {
+        let points: Vec<(f64, f64, f64)> = vec![
+            (0.0, 0.0, width),
+            (length / 3.0, 0.0, width),
+            (2.0 * length / 3.0, 0.0, width),
+            (length, 0.0, width),
+        ];
+
+        let name: String = format!("{length:.0} m Straight");
+        return Self::new(name, false, length, 1, points);
     }
 
     pub fn read_from_file(file_path: &str) -> Self {
@@ -67,14 +88,18 @@ impl Track {
             _ => panic!("Invalid value for is_closed in track file"),
         };
         // Next four bytes are a uint32 indicating the number of polynomial segments
-        let num_segments: u32 = u32::from_le_bytes([data[129], data[130], data[131], data[132]]);
-        let num_points: usize = (num_segments as usize) * 3;
+        let n_segments: usize =
+            u32::from_le_bytes([data[129], data[130], data[131], data[132]]) as usize;
+        let n_points: usize = match is_closed {
+            true => n_segments * 3,
+            false => n_segments * 3 + 1,
+        };
 
-        let mut points: Vec<(f64, f64, f64)> = Vec::with_capacity(num_points);
+        let mut points: Vec<(f64, f64, f64)> = Vec::with_capacity(n_points);
 
         let mut offset = 133;
         let increment: usize = 24; // Each point is 3 f64s = 24 bytes
-        for _ in 0..num_points {
+        for _ in 0..n_points {
             if offset + increment > data_len {
                 panic!("Unexpected end of file while reading track points");
             }
@@ -113,7 +138,7 @@ impl Track {
             offset += increment;
         }
 
-        return Self::new(name, is_closed, 0.0, points);
+        return Self::new(name, is_closed, 0.0, n_segments, points);
     }
 
     #[allow(dead_code)]
@@ -129,5 +154,23 @@ impl Track {
     #[allow(dead_code)]
     pub fn points(&self) -> Vec<(f64, f64, f64)> {
         return self.points.clone();
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_straight_track() {
+        let track: Track = Track::straight(120.0, 5.0);
+        assert_eq!(track.name, "120 m Straight");
+        assert_eq!(track.is_closed(), false);
+        assert_eq!(track.length(), 120.0);
+        assert_eq!(track.points.len(), 4);
+        assert_eq!(track.points[0], (0.0, 0.0, 5.0));
+        assert_eq!(track.points[1], (40.0, 0.0, 5.0));
+        assert_eq!(track.points[2], (80.0, 0.0, 5.0));
+        assert_eq!(track.points[3], (120.0, 0.0, 5.0));
     }
 }
