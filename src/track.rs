@@ -1,5 +1,3 @@
-use std::fs::File;
-
 pub struct Track {
     // Public
     pub name: String,
@@ -109,16 +107,16 @@ impl Track {
 
     #[allow(dead_code)]
     pub fn length(&self) -> f64 {
-        self.length
+        return self.length;
     }
 
     #[allow(dead_code)]
     pub fn is_closed(&self) -> bool {
-        self.is_closed
+        return self.is_closed;
     }
 
     #[allow(dead_code)]
-    pub fn points(&self) -> &Vec<(f64, f64)> {
-        &self.points
+    pub fn points(&self) -> Vec<(f64, f64)> {
+        return self.points.clone();
     }
 }
