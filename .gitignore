@@ -3,7 +3,6 @@
 *.trk
 
 # Files
-Cargo.lock
 .DS_Store
 
 # Ignore directories
