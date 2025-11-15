@@ -1,3 +1,5 @@
+use maths_toolbox;
+
 pub struct Track {
     // Public
     pub name: String,
@@ -192,9 +194,12 @@ impl Track {
             offset += increment;
         }
 
-        return Self::new(name, is_closed, 0.0, n_segments, points);
+        let length = calculate_length(&points, n_segments, is_closed);
+
+        return Self::new(name, is_closed, length, n_segments, points);
     }
 
+    // Getters
     #[allow(dead_code)]
     pub fn length(&self) -> f64 {
         return self.length;
@@ -243,6 +248,46 @@ fn interp_segment(points: &Vec<(f64, f64, f64)>, sq: &Vec<f64>) -> Vec<(f64, f64
     return result;
 }
 
+fn calculate_length(points: &Vec<(f64, f64, f64)>, n_segments: usize, is_closed: bool) -> f64 {
+    // Each cubic segment is defined on the interval [0, 1] in parameter s
+    // The length integral kernel is sqrt((dx/ds)^2 + (dy/ds)^2) which is of degree
+    // 2 in s, so we can use 2-point Gauss-Legendre quadrature to compute the length exactly
+    let lgq_points: Vec<(f64, f64)> = maths_toolbox::glq_interval(0.0, 1.0, 2);
+    let mut total_length: f64 = 0.0;
+
+    for k in 0..n_segments {
+        let segment_points: Vec<(f64, f64, f64)> = if k == n_segments - 1 && is_closed {
+            // Last segment a closed track wraps around to the first point
+            vec![
+                points[k * 3],
+                points[k * 3 + 1],
+                points[k * 3 + 2],
+                points[0],
+            ]
+        } else {
+            points[k * 3..k * 3 + 4].to_vec()
+        };
+
+        let mut segment_length: f64 = 0.0;
+        for (s_i, w_i) in &lgq_points {
+            // Compute derivatives dx/ds and dy/ds at s_i
+            let dx_ds: f64 = -3.0 * segment_points[0].0 * (1.0 - s_i).powi(2)
+                + 3.0 * segment_points[1].0 * ((1.0 - s_i).powi(2) - 2.0 * s_i * (1.0 - s_i))
+                + 3.0 * segment_points[2].0 * (2.0 * s_i * (1.0 - s_i) - s_i.powi(2))
+                + 3.0 * segment_points[3].0 * s_i.powi(2);
+            let dy_ds: f64 = -3.0 * segment_points[0].1 * (1.0 - s_i).powi(2)
+                + 3.0 * segment_points[1].1 * ((1.0 - s_i).powi(2) - 2.0 * s_i * (1.0 - s_i))
+                + 3.0 * segment_points[2].1 * (2.0 * s_i * (1.0 - s_i) - s_i.powi(2))
+                + 3.0 * segment_points[3].1 * s_i.powi(2);
+
+            segment_length += w_i * f64::sqrt(dx_ds.powi(2) + dy_ds.powi(2));
+        }
+        total_length += segment_length;
+    }
+
+    return total_length;
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -269,5 +314,12 @@ mod tests {
         assert!((results[0].0 - 60.0).abs() < 1e-6);
         assert!((results[0].1 - 0.0).abs() < 1e-6);
         assert!((results[0].2 - 5.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_length_calculation() {
+        let track: Track = Track::straight(50.0, 5.0);
+        let length: f64 = calculate_length(&track.points, track.n_segments, track.is_closed);
+        assert!((length - 50.0).abs() < 1e-6);
     }
 }
