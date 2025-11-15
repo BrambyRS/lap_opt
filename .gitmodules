@@ -1,3 +1,6 @@
 [submodule "libs/simulation_toolbox"]
 	path = libs/simulation_toolbox
 	url = git@github.com:BrambyRS/simulation_toolbox.git
+[submodule "libs/maths_toolobox"]
+	path = libs/maths_toolobox
+	url = git@github.com:BrambyRS/maths_toolbox.git
