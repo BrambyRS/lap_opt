@@ -11,6 +11,23 @@ pub struct Track {
     n_segments: usize,
 }
 
+// TODO: Implement segment trait and different types of segments (straight, curve, etc.)
+// Could look something like this:
+/*
+trait Segment {
+    fn length(&self) -> f64;
+    fn eval(&self, s: f64) -> (f64, f64, f64); // Evaluate at parameter s in [0, 1]
+    fn eval_der(&self, s: f64) -> (f64, f64, f64); // Evaluate derivative at s
+}
+
+struct CubicBezierSegment {
+    p0: (f64, f64, f64),
+    p1: (f64, f64, f64),
+    p2: (f64, f64, f64),
+    p3: (f64, f64, f64),
+}
+*/
+
 impl std::fmt::Display for Track {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         return match self.is_closed {
