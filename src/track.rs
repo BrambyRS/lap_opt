@@ -11,6 +11,14 @@ pub struct Track {
     n_segments: usize,
 }
 
+struct TrackFrame {
+    // Currently only 2D tracks are supported so normal is always (0, 0, 1) and thus omitted
+    position: (f64, f64),
+    tangent: (f64, f64), // Unit vector in "forward" direction
+    lateral: (f64, f64), // Unit vector to the left of tangent
+    width: f64,
+}
+
 // TODO: Implement segment trait and different types of segments (straight, curve, etc.)
 // Could look something like this:
 /*
@@ -28,6 +36,7 @@ struct CubicBezierSegment {
 }
 */
 
+// TRACK IMPLEMENTATION ++++++++++++++++++++++++++++++++
 impl std::fmt::Display for Track {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         return match self.is_closed {
@@ -233,7 +242,44 @@ impl Track {
     }
 }
 
-// Support functions
+// TRACKFRAME IMPLEMENTATION +++++++++++++++++++++++++++
+impl std::fmt::Display for TrackFrame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Position: ({:.2}, {:.2})\nTangent: ({:.2}, {:.2})\nLateral: ({:.2}, {:.2})\nWidth: {:.2}",
+            self.position.0,
+            self.position.1,
+            self.tangent.0,
+            self.tangent.1,
+            self.lateral.0,
+            self.lateral.1,
+            self.width
+        )
+    }
+}
+
+impl TrackFrame {
+    pub fn new(position: (f64, f64), tangent_raw: (f64, f64), width: f64) -> Self {
+        // Calculate lateral as a unit vector to the left of tangent under the assumption
+        // that the track is in the XY plane
+
+        let tangent_norm: f64 = f64::sqrt(tangent_raw.0.powi(2) + tangent_raw.1.powi(2));
+        let tangent: (f64, f64) = (tangent_raw.0 / tangent_norm, tangent_raw.1 / tangent_norm);
+
+        // Cross product [0;0;1]x[tangent.0;tangent.1;0] = [-tangent.1; tangent.0; 0]
+        let lateral: (f64, f64) = (-tangent.1, tangent.0);
+
+        return Self {
+            position,
+            tangent,
+            lateral,
+            width,
+        };
+    }
+}
+
+// SUPPORT FUNCTIONS +++++++++++++++++++++++++++++++++++
 fn interp_segment(points: &Vec<(f64, f64, f64)>, sq: &Vec<f64>) -> Vec<(f64, f64, f64)> {
     // Validate inputs
     for s in sq {
@@ -309,6 +355,7 @@ fn calculate_length(points: &Vec<(f64, f64, f64)>, n_segments: usize, is_closed:
 mod tests {
     use super::*;
 
+    // TRACK TESTS +++++++++++++++++++++++++++++++++++++
     #[test]
     fn test_straight_track() {
         let track: Track = Track::straight(120.0, 5.0);
@@ -338,5 +385,58 @@ mod tests {
         let track: Track = Track::straight(50.0, 5.0);
         let length: f64 = calculate_length(&track.points, track.n_segments, track.is_closed);
         assert!((length - 50.0).abs() < 1e-6);
+    }
+
+    // TRACKFRAME TESTS ++++++++++++++++++++++++++++++++
+    #[test]
+    fn test_trackframe_xdir() {
+        // Test with tangent along x-axis
+        let position: (f64, f64) = (10.0, 5.0);
+        let tangent_raw: (f64, f64) = (3.0, 0.0);
+        let width: f64 = 4.0;
+
+        let frame: TrackFrame = TrackFrame::new(position, tangent_raw, width);
+        assert!((frame.position.0 - 10.0).abs() < 1e-6);
+        assert!((frame.position.1 - 5.0).abs() < 1e-6);
+        assert!((frame.tangent.0 - 1.0).abs() < 1e-6);
+        assert!((frame.tangent.1 - 0.0).abs() < 1e-6);
+        assert!((frame.lateral.0 - 0.0).abs() < 1e-6);
+        assert!((frame.lateral.1 - 1.0).abs() < 1e-6);
+        assert!((frame.width - 4.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_trackframe_ydir() {
+        // Test with tangent along y-axis
+        let position: (f64, f64) = (0.0, 0.0);
+        let tangent_raw: (f64, f64) = (0.0, -2.0);
+        let width: f64 = 2.5;
+
+        let frame: TrackFrame = TrackFrame::new(position, tangent_raw, width);
+        assert!((frame.position.0 - 0.0).abs() < 1e-6);
+        assert!((frame.position.1 - 0.0).abs() < 1e-6);
+        assert!((frame.tangent.0 - 0.0).abs() < 1e-6);
+        assert!((frame.tangent.1 + 1.0).abs() < 1e-6);
+        assert!((frame.lateral.0 - 1.0).abs() < 1e-6);
+        assert!((frame.lateral.1 - 0.0).abs() < 1e-6);
+        assert!((frame.width - 2.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_trackframe_diag() {
+        // Test with tangent at 45 degrees
+        let position: (f64, f64) = (1.0, 1.0);
+        let tangent_raw: (f64, f64) = (1.0, 1.0);
+        let width: f64 = 3.0;
+
+        let frame: TrackFrame = TrackFrame::new(position, tangent_raw, width);
+        let inv_sqrt2: f64 = 1.0 / f64::sqrt(2.0);
+        assert!((frame.position.0 - 1.0).abs() < 1e-6);
+        assert!((frame.position.1 - 1.0).abs() < 1e-6);
+        assert!((frame.tangent.0 - inv_sqrt2).abs() < 1e-6);
+        assert!((frame.tangent.1 - inv_sqrt2).abs() < 1e-6);
+        assert!((frame.lateral.0 + inv_sqrt2).abs() < 1e-6);
+        assert!((frame.lateral.1 - inv_sqrt2).abs() < 1e-6);
+        assert!((frame.width - 3.0).abs() < 1e-6);
     }
 }
