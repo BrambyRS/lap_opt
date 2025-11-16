@@ -234,6 +234,50 @@ impl Track {
         return Self::new(name, is_closed, n_segments, points);
     }
 
+    pub fn discretise(&self, s_lap_q: Vec<f64>) -> Box<Vec<TrackFrame>> {
+        // Validate s_lap_q
+        for &s_lap in &s_lap_q {
+            if s_lap < 0.0 || s_lap > self.length {
+                panic!("s_lap value {} out of bounds [0, {}]", s_lap, self.length);
+            }
+        }
+
+        let mut frames: Vec<TrackFrame> = Vec::with_capacity(s_lap_q.len());
+
+        for &s_lap in &s_lap_q {
+            // Find which segment this s_lap falls into
+            let mut s_remaining: f64 = s_lap;
+            let mut segment_index: usize = 0;
+            // Remove each segment's length from the s_lap value
+            // until the remaining s_lap fits within the current segment
+            while segment_index < self.n_segments {
+                let seg_length: f64 = self.segment_lengths[segment_index];
+                if s_remaining <= seg_length {
+                    break;
+                } else {
+                    s_remaining -= seg_length;
+                    segment_index += 1;
+                }
+            }
+            if segment_index >= self.n_segments {
+                segment_index = self.n_segments - 1;
+                s_remaining = self.segment_lengths[segment_index];
+            }
+
+            // Use the remaining s_lap to get the normalized parameter in [0, 1] for the segment
+            let s_norm: f64 = s_remaining / self.segment_lengths[segment_index]; // Normalized parameter in [0, 1]
+
+            // Evaluate the segment at s_norm
+            let (x, y, width) = self.segments[segment_index].eval(s_norm);
+            let (dx_ds, dy_ds, _dwidth_ds) = self.segments[segment_index].eval_ds(s_norm);
+
+            let frame: TrackFrame = TrackFrame::new((x, y), (dx_ds, dy_ds), width);
+            frames.push(frame);
+        }
+
+        return Box::new(frames);
+    }
+
     // Getters
     #[allow(dead_code)]
     pub fn length(&self) -> f64 {
@@ -387,6 +431,25 @@ mod tests {
         assert_eq!(track.name, "120 m Straight");
         assert_eq!(track.is_closed(), false);
         assert_eq!(track.length(), 120.0);
+    }
+
+    #[test]
+    fn test_discretise_straight_track() {
+        let track: Track = Track::straight(100.0, 4.0);
+        let s_lap_q: Vec<f64> = vec![0.0, 25.0, 50.0, 75.0, 100.0];
+        let frames: Box<Vec<TrackFrame>> = track.discretise(s_lap_q);
+
+        assert_eq!(frames.len(), 5);
+        for (i, frame) in frames.iter().enumerate() {
+            let expected_x: f64 = (i as f64) * 25.0;
+            assert!((frame.position().0 - expected_x).abs() < 1e-6);
+            assert!((frame.position().1 - 0.0).abs() < 1e-6);
+            assert!((frame.tangent().0 - 1.0).abs() < 1e-6);
+            assert!((frame.tangent().1 - 0.0).abs() < 1e-6);
+            assert!((frame.lateral().0 - 0.0).abs() < 1e-6);
+            assert!((frame.lateral().1 - 1.0).abs() < 1e-6);
+            assert!((frame.width() - 4.0).abs() < 1e-6);
+        }
     }
 
     // TRACKFRAME TESTS ++++++++++++++++++++++++++++++++
