@@ -4,4 +4,5 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-simulation_toolbox = {path = "libs/simulation_toolbox"}
+maths_toolbox = { version = "0.1.0", path = "libs/maths_toolbox" }
+simulation_toolbox = { version = "0.1.0", path = "libs/simulation_toolbox" }

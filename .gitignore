@@ -1,10 +1,11 @@
 # File types
 *.csv
+*.trk
 
 # Files
-Cargo.lock
 .DS_Store
 
-# Ignore build artifacts
-/target
-/doc/build
+# Ignore directories
+__pycache__/
+target/
+doc/build/
