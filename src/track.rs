@@ -6,9 +6,10 @@ pub struct Track {
     // Private with getters
     is_closed: bool,
     length: f64,
-    points: Vec<(f64, f64, f64)>, // (x, y, width)
     // Private without getters
     n_segments: usize,
+    segment_lengths: Vec<f64>,
+    segments: Vec<Box<CubicBezierSegment>>, // Currently only works with CubicBezierSegment
 }
 
 struct TrackFrame {
@@ -19,22 +20,19 @@ struct TrackFrame {
     width: f64,
 }
 
-// TODO: Implement segment trait and different types of segments (straight, curve, etc.)
-// Could look something like this:
-/*
-trait Segment {
-    fn length(&self) -> f64;
+pub trait Segment {
+    fn calc_length(&self) -> f64;
     fn eval(&self, s: f64) -> (f64, f64, f64); // Evaluate at parameter s in [0, 1]
-    fn eval_der(&self, s: f64) -> (f64, f64, f64); // Evaluate derivative at s
+    fn eval_ds(&self, s: f64) -> (f64, f64, f64); // Evaluate derivative wrt s at s
 }
 
 struct CubicBezierSegment {
+    // Each of these is a control point (x, y, width)
     p0: (f64, f64, f64),
     p1: (f64, f64, f64),
     p2: (f64, f64, f64),
     p3: (f64, f64, f64),
 }
-*/
 
 // TRACK IMPLEMENTATION ++++++++++++++++++++++++++++++++
 impl std::fmt::Display for Track {
@@ -58,16 +56,37 @@ impl Track {
     pub fn new(
         name: String,
         is_closed: bool,
-        length: f64,
         n_segments: usize,
         points: Vec<(f64, f64, f64)>,
     ) -> Self {
+        // Divide points into segments
+        let mut segments: Vec<Box<CubicBezierSegment>> = Vec::with_capacity(n_segments);
+        let mut segment_lengths: Vec<f64> = Vec::with_capacity(n_segments);
+        let mut length: f64 = 0.0;
+        for i in 0..n_segments {
+            let idx_offset: usize = i * 3;
+
+            let p0: (f64, f64, f64) = points[idx_offset];
+            let p1: (f64, f64, f64) = points[idx_offset + 1];
+            let p2: (f64, f64, f64) = points[idx_offset + 2];
+            let p3: (f64, f64, f64) = points[idx_offset + 3];
+
+            let segment: Box<CubicBezierSegment> =
+                Box::new(CubicBezierSegment::new(p0, p1, p2, p3));
+            segments.push(segment);
+
+            let seg_length: f64 = segments[i].calc_length();
+            segment_lengths.push(seg_length);
+            length += seg_length;
+        }
+
         Self {
             name,
             is_closed,
-            length,
             n_segments,
-            points,
+            length,
+            segment_lengths,
+            segments,
         }
     }
 
@@ -81,7 +100,7 @@ impl Track {
         ];
 
         let name: String = format!("{length:.0} m Straight");
-        return Self::new(name, false, length, 1, points);
+        return Self::new(name, false, 1, points);
     }
 
     #[allow(dead_code)]
@@ -111,13 +130,7 @@ impl Track {
             (50.0, 0.0, 3.0),
         ];
 
-        return Self::new(
-            "Double Lane Change".to_string(),
-            false,
-            0.0,
-            n_segments,
-            points,
-        );
+        return Self::new("Double Lane Change".to_string(), false, n_segments, points);
     }
 
     pub fn read_from_file(file_path: &str) -> Self {
@@ -172,10 +185,7 @@ impl Track {
         // Next four bytes are a uint32 indicating the number of polynomial segments
         let n_segments: usize =
             u32::from_le_bytes([data[129], data[130], data[131], data[132]]) as usize;
-        let n_points: usize = match is_closed {
-            true => n_segments * 3,
-            false => n_segments * 3 + 1,
-        };
+        let n_points: usize = n_segments * 3 + 1;
 
         let mut points: Vec<(f64, f64, f64)> = Vec::with_capacity(n_points);
 
@@ -220,9 +230,7 @@ impl Track {
             offset += increment;
         }
 
-        let length = calculate_length(&points, n_segments, is_closed);
-
-        return Self::new(name, is_closed, length, n_segments, points);
+        return Self::new(name, is_closed, n_segments, points);
     }
 
     // Getters
@@ -234,11 +242,6 @@ impl Track {
     #[allow(dead_code)]
     pub fn is_closed(&self) -> bool {
         return self.is_closed;
-    }
-
-    #[allow(dead_code)]
-    pub fn points(&self) -> Vec<(f64, f64, f64)> {
-        return self.points.clone();
     }
 }
 
@@ -279,76 +282,77 @@ impl TrackFrame {
     }
 }
 
-// SUPPORT FUNCTIONS +++++++++++++++++++++++++++++++++++
-fn interp_segment(points: &Vec<(f64, f64, f64)>, sq: &Vec<f64>) -> Vec<(f64, f64, f64)> {
-    // Validate inputs
-    for s in sq {
-        assert!(*s >= 0.0 && *s <= 1.0, "s must be in [0, 1]");
-    }
-    assert!(
-        points.len() == 4,
-        "points must have exactly 4 control points"
-    );
-
-    let mut result: Vec<(f64, f64, f64)> = Vec::with_capacity(sq.len());
-    for s in sq {
-        let x = points[0].0 * (1.0 - s).powi(3)
-            + 3.0 * points[1].0 * s * (1.0 - s).powi(2)
-            + 3.0 * points[2].0 * s.powi(2) * (1.0 - s)
-            + points[3].0 * s.powi(3);
-        let y = points[0].1 * (1.0 - s).powi(3)
-            + 3.0 * points[1].1 * s * (1.0 - s).powi(2)
-            + 3.0 * points[2].1 * s.powi(2) * (1.0 - s)
-            + points[3].1 * s.powi(3);
-        let width = points[0].2 * (1.0 - s).powi(3)
-            + 3.0 * points[1].2 * s * (1.0 - s).powi(2)
-            + 3.0 * points[2].2 * s.powi(2) * (1.0 - s)
-            + points[3].2 * s.powi(3);
-
-        result.push((x, y, width));
+// SEGMENT IMPLEMENTATION for CubicBezierSegment +++++++
+impl Segment for CubicBezierSegment {
+    fn calc_length(&self) -> f64 {
+        let lgq_points: Vec<(f64, f64)> = maths_toolbox::glq_interval(0.0, 1.0, 2);
+        let mut length: f64 = 0.0;
+        for (s_i, w_i) in &lgq_points {
+            let (dx_ds, dy_ds, _dwidth_ds) = self.eval_ds(*s_i);
+            length += w_i * f64::sqrt(dx_ds.powi(2) + dy_ds.powi(2));
+        }
+        return length;
     }
 
-    return result;
+    fn eval(&self, s: f64) -> (f64, f64, f64) {
+        // Validate s
+        assert!(
+            s >= 0.0 && s <= 1.0,
+            "Parameter s must be in the range [0, 1], got {}",
+            s
+        );
+
+        let x = self.p0.0 * (1.0 - s).powi(3)
+            + 3.0 * self.p1.0 * s * (1.0 - s).powi(2)
+            + 3.0 * self.p2.0 * s.powi(2) * (1.0 - s)
+            + self.p3.0 * s.powi(3);
+        let y = self.p0.1 * (1.0 - s).powi(3)
+            + 3.0 * self.p1.1 * s * (1.0 - s).powi(2)
+            + 3.0 * self.p2.1 * s.powi(2) * (1.0 - s)
+            + self.p3.1 * s.powi(3);
+        let width = self.p0.2 * (1.0 - s).powi(3)
+            + 3.0 * self.p1.2 * s * (1.0 - s).powi(2)
+            + 3.0 * self.p2.2 * s.powi(2) * (1.0 - s)
+            + self.p3.2 * s.powi(3);
+
+        return (x, y, width);
+    }
+
+    fn eval_ds(&self, s: f64) -> (f64, f64, f64) {
+        // Validate s
+        assert!(
+            s >= 0.0 && s <= 1.0,
+            "Parameter s must be in the range [0, 1], got {}",
+            s
+        );
+
+        let dx_ds = -3.0 * self.p0.0 * (1.0 - s).powi(2)
+            + 3.0 * self.p1.0 * ((1.0 - s).powi(2) - 2.0 * s * (1.0 - s))
+            + 3.0 * self.p2.0 * (2.0 * s * (1.0 - s) - s.powi(2))
+            + 3.0 * self.p3.0 * s.powi(2);
+        let dy_ds = -3.0 * self.p0.1 * (1.0 - s).powi(2)
+            + 3.0 * self.p1.1 * ((1.0 - s).powi(2) - 2.0 * s * (1.0 - s))
+            + 3.0 * self.p2.1 * (2.0 * s * (1.0 - s) - s.powi(2))
+            + 3.0 * self.p3.1 * s.powi(2);
+        let dwidth_ds = -3.0 * self.p0.2 * (1.0 - s).powi(2)
+            + 3.0 * self.p1.2 * ((1.0 - s).powi(2) - 2.0 * s * (1.0 - s))
+            + 3.0 * self.p2.2 * (2.0 * s * (1.0 - s) - s.powi(2))
+            + 3.0 * self.p3.2 * s.powi(2);
+
+        return (dx_ds, dy_ds, dwidth_ds);
+    }
 }
 
-fn calculate_length(points: &Vec<(f64, f64, f64)>, n_segments: usize, is_closed: bool) -> f64 {
-    // Each cubic segment is defined on the interval [0, 1] in parameter s
-    // The length integral kernel is sqrt((dx/ds)^2 + (dy/ds)^2) which is of degree
-    // 2 in s, so we can use 2-point Gauss-Legendre quadrature to compute the length exactly
-    let lgq_points: Vec<(f64, f64)> = maths_toolbox::glq_interval(0.0, 1.0, 2);
-    let mut total_length: f64 = 0.0;
-
-    for k in 0..n_segments {
-        let segment_points: Vec<(f64, f64, f64)> = if k == n_segments - 1 && is_closed {
-            // Last segment a closed track wraps around to the first point
-            vec![
-                points[k * 3],
-                points[k * 3 + 1],
-                points[k * 3 + 2],
-                points[0],
-            ]
-        } else {
-            points[k * 3..k * 3 + 4].to_vec()
-        };
-
-        let mut segment_length: f64 = 0.0;
-        for (s_i, w_i) in &lgq_points {
-            // Compute derivatives dx/ds and dy/ds at s_i
-            let dx_ds: f64 = -3.0 * segment_points[0].0 * (1.0 - s_i).powi(2)
-                + 3.0 * segment_points[1].0 * ((1.0 - s_i).powi(2) - 2.0 * s_i * (1.0 - s_i))
-                + 3.0 * segment_points[2].0 * (2.0 * s_i * (1.0 - s_i) - s_i.powi(2))
-                + 3.0 * segment_points[3].0 * s_i.powi(2);
-            let dy_ds: f64 = -3.0 * segment_points[0].1 * (1.0 - s_i).powi(2)
-                + 3.0 * segment_points[1].1 * ((1.0 - s_i).powi(2) - 2.0 * s_i * (1.0 - s_i))
-                + 3.0 * segment_points[2].1 * (2.0 * s_i * (1.0 - s_i) - s_i.powi(2))
-                + 3.0 * segment_points[3].1 * s_i.powi(2);
-
-            segment_length += w_i * f64::sqrt(dx_ds.powi(2) + dy_ds.powi(2));
-        }
-        total_length += segment_length;
+// CUBICBEZIERSEGMENT IMPLEMENTATION ++++++++++++++++
+impl CubicBezierSegment {
+    pub fn new(
+        p0: (f64, f64, f64),
+        p1: (f64, f64, f64),
+        p2: (f64, f64, f64),
+        p3: (f64, f64, f64),
+    ) -> Self {
+        return Self { p0, p1, p2, p3 };
     }
-
-    return total_length;
 }
 
 #[cfg(test)]
@@ -362,29 +366,6 @@ mod tests {
         assert_eq!(track.name, "120 m Straight");
         assert_eq!(track.is_closed(), false);
         assert_eq!(track.length(), 120.0);
-        assert_eq!(track.points.len(), 4);
-        assert_eq!(track.points[0], (0.0, 0.0, 5.0));
-        assert_eq!(track.points[1], (40.0, 0.0, 5.0));
-        assert_eq!(track.points[2], (80.0, 0.0, 5.0));
-        assert_eq!(track.points[3], (120.0, 0.0, 5.0));
-    }
-
-    #[test]
-    fn test_interp_straight() {
-        let track: Track = Track::straight(120.0, 5.0);
-        let points: Vec<(f64, f64, f64)> = track.points();
-
-        let results: Vec<(f64, f64, f64)> = interp_segment(&points[0..4].to_vec(), &vec![0.5]);
-        assert!((results[0].0 - 60.0).abs() < 1e-6);
-        assert!((results[0].1 - 0.0).abs() < 1e-6);
-        assert!((results[0].2 - 5.0).abs() < 1e-6);
-    }
-
-    #[test]
-    fn test_length_calculation() {
-        let track: Track = Track::straight(50.0, 5.0);
-        let length: f64 = calculate_length(&track.points, track.n_segments, track.is_closed);
-        assert!((length - 50.0).abs() < 1e-6);
     }
 
     // TRACKFRAME TESTS ++++++++++++++++++++++++++++++++
@@ -438,5 +419,56 @@ mod tests {
         assert!((frame.lateral.0 + inv_sqrt2).abs() < 1e-6);
         assert!((frame.lateral.1 - inv_sqrt2).abs() < 1e-6);
         assert!((frame.width - 3.0).abs() < 1e-6);
+    }
+
+    // CUBICBEZIERSEGMENT TESTS ++++++++++++++++++++++++
+    #[test]
+    fn test_cubic_bezier_eval() {
+        let segment: CubicBezierSegment = CubicBezierSegment::new(
+            (0.0, 0.0, 2.0),
+            (1.0, 2.0, 2.5),
+            (2.0, 2.0, 3.0),
+            (3.0, 0.0, 3.5),
+        );
+
+        let (x0, y0, w0) = segment.eval(0.0);
+        assert!((x0 - 0.0).abs() < 1e-6);
+        assert!((y0 - 0.0).abs() < 1e-6);
+        assert!((w0 - 2.0).abs() < 1e-6);
+
+        let (x05, y05, w05) = segment.eval(0.5);
+        assert!((x05 - 1.5).abs() < 1e-6);
+        assert!((y05 - 1.5).abs() < 1e-6);
+        assert!((w05 - 2.75).abs() < 1e-6);
+
+        let (x1, y1, w1) = segment.eval(1.0);
+        assert!((x1 - 3.0).abs() < 1e-6);
+        assert!((y1 - 0.0).abs() < 1e-6);
+        assert!((w1 - 3.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_cubic_bezier_eval_ds() {
+        let segment: CubicBezierSegment = CubicBezierSegment::new(
+            (0.0, 0.0, 2.0),
+            (1.0, 2.0, 2.5),
+            (2.0, 2.0, 3.0),
+            (3.0, 0.0, 3.5),
+        );
+
+        let (dx0, dy0, dw0) = segment.eval_ds(0.0);
+        assert!((dx0 - 3.0).abs() < 1e-6);
+        assert!((dy0 - 6.0).abs() < 1e-6);
+        assert!((dw0 - 1.5).abs() < 1e-6);
+
+        let (dx05, dy05, dw05) = segment.eval_ds(0.5);
+        assert!((dx05 - 3.0).abs() < 1e-6);
+        assert!((dy05 - 0.0).abs() < 1e-6);
+        assert!((dw05 - 1.5).abs() < 1e-6);
+
+        let (dx1, dy1, dw1) = segment.eval_ds(1.0);
+        assert!((dx1 - 3.0).abs() < 1e-6);
+        assert!((dy1 + 6.0).abs() < 1e-6);
+        assert!((dw1 - 1.5).abs() < 1e-6);
     }
 }
