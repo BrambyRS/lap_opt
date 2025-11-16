@@ -12,8 +12,9 @@ pub struct Track {
     segments: Vec<Box<CubicBezierSegment>>, // Currently only works with CubicBezierSegment
 }
 
-struct TrackFrame {
+pub struct TrackFrame {
     // Currently only 2D tracks are supported so normal is always (0, 0, 1) and thus omitted
+    // Private with getters
     position: (f64, f64),
     tangent: (f64, f64), // Unit vector in "forward" direction
     lateral: (f64, f64), // Unit vector to the left of tangent
@@ -279,6 +280,26 @@ impl TrackFrame {
             lateral,
             width,
         };
+    }
+
+    #[allow(dead_code)]
+    pub fn position(&self) -> (f64, f64) {
+        return self.position;
+    }
+
+    #[allow(dead_code)]
+    pub fn tangent(&self) -> (f64, f64) {
+        return self.tangent;
+    }
+
+    #[allow(dead_code)]
+    pub fn lateral(&self) -> (f64, f64) {
+        return self.lateral;
+    }
+
+    #[allow(dead_code)]
+    pub fn width(&self) -> f64 {
+        return self.width;
     }
 }
 
