@@ -9,7 +9,7 @@ fn get_scaling(x: Vec<f64>, tangent: Vec<f64>) -> f64 {
     // Get tangent components
     let tx: f64 = tangent[0];
     let ty: f64 = tangent[1];
-    // Get velcity components
+    // Get velocity components
     let vx: f64 = x[2];
     let vy: f64 = x[3];
     // Caclulate speed along tangent
