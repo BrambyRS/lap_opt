@@ -2,6 +2,7 @@ use simulation_toolbox::erk::ExplicitRK;
 use std::fs::File;
 use std::io::Write;
 
+mod collocation;
 mod model;
 mod track;
 
