@@ -3,9 +3,9 @@
 /// # Fields
 /// * `nodes` - A vector of f64 representing the collocation nodes
 /// * `weights` - A vector of f64 representing the collocation weights
-struct FLGR {
-    nodes: Vec<f64>,
-    weights: Vec<f64>,
+pub struct FLGR {
+    pub nodes: Vec<f64>,
+    pub weights: Vec<f64>,
 }
 
 impl FLGR {
