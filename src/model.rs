@@ -5,7 +5,7 @@ Get the scaling factor dt/ds for a model to convert time derivatives to spatial 
 This assumes states 3 and 4 of the model are always the x- and y-velocities respectively.
 */
 
-fn get_scaling(x: Vec<f64>, tangent: Vec<f64>) -> f64 {
+pub fn get_scaling(x: Vec<f64>, tangent: Vec<f64>) -> f64 {
     // Get tangent components
     let tx: f64 = tangent[0];
     let ty: f64 = tangent[1];
