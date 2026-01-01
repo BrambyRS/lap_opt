@@ -153,7 +153,7 @@ mod tests {
             let x_slice = std::slice::from_raw_parts(x, n as usize);
             *obj_value = (x_slice[0] - 1.0).powi(2) + (x_slice[1] - 2.5).powi(2);
         }
-        1 // true
+        return 1; // true
     }
 
     // Gradient: grad_f = [2*(x1 - 1), 2*(x2 - 2.5)]
@@ -170,7 +170,7 @@ mod tests {
             grad_slice[0] = 2.0 * (x_slice[0] - 1.0);
             grad_slice[1] = 2.0 * (x_slice[1] - 2.5);
         }
-        1 // true
+        return 1; // true
     }
 
     // No constraints
@@ -182,7 +182,7 @@ mod tests {
         _g: *mut Number,
         _user_data: *mut c_void,
     ) -> c_int {
-        1 // true
+        return 1; // true
     }
 
     // No Jacobian (no constraints)
@@ -197,7 +197,7 @@ mod tests {
         _values: *mut Number,
         _user_data: *mut c_void,
     ) -> c_int {
-        1 // true
+        return 1; // true
     }
 
     // Hessian of Lagrangian (only objective, no constraints)
@@ -231,7 +231,7 @@ mod tests {
                 values_slice[1] = obj_factor * 2.0; // d^2f/dx2^2
             }
         }
-        1 // true
+        return 1; // true
     }
 
     #[test]
