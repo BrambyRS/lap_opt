@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::Write;
 
 mod collocation;
+mod ipopt;
 mod model;
 mod track;
 

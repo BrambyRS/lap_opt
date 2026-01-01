@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 maths_toolbox = { version = "0.1.0", path = "libs/maths_toolbox" }
 simulation_toolbox = { version = "0.1.0", path = "libs/simulation_toolbox" }
+libc = "0.2.178"
