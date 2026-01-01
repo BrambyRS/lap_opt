@@ -1,6 +1,6 @@
-use std::ffi::CString;
+#![allow(dead_code)]
+
 use std::os::raw::{c_char, c_double, c_int, c_void};
-use std::ptr;
 
 // IPOPT C API types and constants
 type Index = c_int;
@@ -67,8 +67,8 @@ type EvalJacG = extern "C" fn(
     new_x: c_int,
     m: Index,
     nele_jac: Index,
-    iRow: *mut Index,
-    jCol: *mut Index,
+    i_row: *mut Index,
+    j_col: *mut Index,
     values: *mut Number,
     user_data: *mut c_void,
 ) -> c_int;
@@ -83,8 +83,8 @@ type EvalH = extern "C" fn(
     lambda: *const Number,
     new_lambda: c_int,
     nele_hess: Index,
-    iRow: *mut Index,
-    jCol: *mut Index,
+    i_row: *mut Index,
+    j_col: *mut Index,
     values: *mut Number,
     user_data: *mut c_void,
 ) -> c_int;
@@ -136,6 +136,9 @@ extern "C" {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    use std::ffi::CString;
+    use std::ptr;
 
     // Callback implementations for the test problem
     // Objective: f(x) = (x1 - 1)^2 + (x2 - 2.5)^2
@@ -189,8 +192,8 @@ mod tests {
         _new_x: c_int,
         _m: Index,
         _nele_jac: Index,
-        _iRow: *mut Index,
-        _jCol: *mut Index,
+        _i_row: *mut Index,
+        _j_col: *mut Index,
         _values: *mut Number,
         _user_data: *mut c_void,
     ) -> c_int {
@@ -207,16 +210,16 @@ mod tests {
         _lambda: *const Number,
         _new_lambda: c_int,
         _nele_hess: Index,
-        iRow: *mut Index,
-        jCol: *mut Index,
+        i_row: *mut Index,
+        j_col: *mut Index,
         values: *mut Number,
         _user_data: *mut c_void,
     ) -> c_int {
         unsafe {
             if values.is_null() {
                 // Return structure
-                let irow_slice = std::slice::from_raw_parts_mut(iRow, 2);
-                let jcol_slice = std::slice::from_raw_parts_mut(jCol, 2);
+                let irow_slice = std::slice::from_raw_parts_mut(i_row, 2);
+                let jcol_slice = std::slice::from_raw_parts_mut(j_col, 2);
                 irow_slice[0] = 0;
                 jcol_slice[0] = 0; // (0,0)
                 irow_slice[1] = 1;
