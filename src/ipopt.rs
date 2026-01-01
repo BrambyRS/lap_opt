@@ -150,7 +150,7 @@ mod tests {
         _user_data: *mut c_void,
     ) -> c_int {
         unsafe {
-            let x_slice = std::slice::from_raw_parts(x, n as usize);
+            let x_slice: &[f64] = std::slice::from_raw_parts(x, n as usize);
             *obj_value = (x_slice[0] - 1.0).powi(2) + (x_slice[1] - 2.5).powi(2);
         }
         return 1; // true
@@ -165,8 +165,8 @@ mod tests {
         _user_data: *mut c_void,
     ) -> c_int {
         unsafe {
-            let x_slice = std::slice::from_raw_parts(x, n as usize);
-            let grad_slice = std::slice::from_raw_parts_mut(grad_f, n as usize);
+            let x_slice: &[f64] = std::slice::from_raw_parts(x, n as usize);
+            let grad_slice: &mut [f64] = std::slice::from_raw_parts_mut(grad_f, n as usize);
             grad_slice[0] = 2.0 * (x_slice[0] - 1.0);
             grad_slice[1] = 2.0 * (x_slice[1] - 2.5);
         }
@@ -218,8 +218,8 @@ mod tests {
         unsafe {
             if values.is_null() {
                 // Return structure
-                let irow_slice = std::slice::from_raw_parts_mut(i_row, 2);
-                let jcol_slice = std::slice::from_raw_parts_mut(j_col, 2);
+                let irow_slice: &mut [i32] = std::slice::from_raw_parts_mut(i_row, 2);
+                let jcol_slice: &mut [i32] = std::slice::from_raw_parts_mut(j_col, 2);
                 irow_slice[0] = 0;
                 jcol_slice[0] = 0; // (0,0)
                 irow_slice[1] = 1;
@@ -241,8 +241,8 @@ mod tests {
         let m: Index = 0; // 0 constraints
 
         // Variable bounds: -10 <= x1, x2 <= 10
-        let x_l = vec![-10.0, -10.0];
-        let x_u = vec![10.0, 10.0];
+        let x_l: Vec<f64> = vec![-10.0, -10.0];
+        let x_u: Vec<f64> = vec![10.0, 10.0];
 
         // No constraints
         let g_l: Vec<Number> = vec![];
@@ -256,7 +256,7 @@ mod tests {
         let index_style: Index = 0;
 
         // Create the IPOPT problem
-        let ipopt_problem = unsafe {
+        let ipopt_problem: *mut std::ffi::c_void = unsafe {
             CreateIpoptProblem(
                 n,
                 x_l.as_ptr(),
@@ -279,10 +279,10 @@ mod tests {
 
         // Set options
         unsafe {
-            let tol_key = CString::new("tol").unwrap();
+            let tol_key: CString = CString::new("tol").unwrap();
             AddIpoptNumOption(ipopt_problem, tol_key.as_ptr(), 1e-7);
 
-            let print_level_key = CString::new("print_level").unwrap();
+            let print_level_key: CString = CString::new("print_level").unwrap();
             AddIpoptIntOption(ipopt_problem, print_level_key.as_ptr(), 5);
         }
 
@@ -295,7 +295,7 @@ mod tests {
         let mut mult_x_u: Vec<f64> = vec![0.0; n as usize];
 
         // Solve the problem
-        let status = unsafe {
+        let status: ApplicationReturnStatus = unsafe {
             IpoptSolve(
                 ipopt_problem,
                 x.as_mut_ptr(),
