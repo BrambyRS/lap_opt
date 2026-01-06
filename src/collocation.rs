@@ -50,6 +50,15 @@ impl FLGR {
             _ => None,
         };
     }
+
+    pub fn map_nodes(&self, a: f64, b: f64) -> Vec<f64> {
+        let mut mapped_nodes: Vec<f64> = Vec::with_capacity(self.nodes.len());
+        for &node in &self.nodes {
+            let mapped_node: f64 = 0.5 * (b - a) * (node + 1.0) + a;
+            mapped_nodes.push(mapped_node);
+        }
+        return mapped_nodes;
+    }
 }
 
 #[cfg(test)]
@@ -70,6 +79,26 @@ mod tests {
                 "Weight sum for nq={} is {}",
                 nq,
                 weight_sum
+            );
+        }
+    }
+
+    #[test]
+    fn test_node_mapping() {
+        let collocation: FLGR = match FLGR::new(3) {
+            Some(c) => c,
+            None => panic!("Failed to create FLGR collocation of order 3"),
+        };
+        let a: f64 = 2.0;
+        let b: f64 = 4.0;
+        let mapped_nodes: Vec<f64> = collocation.map_nodes(a, b);
+        let expected_nodes: Vec<f64> = vec![2.310102, 3.289898, 4.0];
+        for (mapped, expected) in mapped_nodes.iter().zip(expected_nodes.iter()) {
+            assert!(
+                (mapped - expected).abs() < 1e-4,
+                "Mapped node {} does not match expected {}",
+                mapped,
+                expected
             );
         }
     }
