@@ -25,7 +25,7 @@ impl FLGR {
     /// ```
     /// let collocation = FLGR::new(4);
     /// ```
-    fn new(nq: usize) -> Option<FLGR> {
+    pub fn new(nq: usize) -> Option<FLGR> {
         return match nq {
             1 => Some(FLGR {
                 nodes: vec![1.0],
