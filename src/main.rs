@@ -1,10 +1,8 @@
 use clap::{Parser, ValueEnum};
-use simulation_toolbox::erk::ExplicitRK;
-use std::fs::File;
-use std::io::Write;
 
 mod collocation;
 mod ipopt;
+mod logger;
 mod model;
 mod track;
 
@@ -33,11 +31,16 @@ struct Args {
     // Path to the track file
     #[arg(short, long)]
     track: TrackType,
+
+    // Verbose output
+    #[arg(long, default_value_t = false)]
+    verbose: bool,
 }
 
 fn main() {
-    let args = Args::parse();
+    let args: Args = Args::parse();
+    let logger: logger::Logger = logger::Logger::new(args.verbose);
 
-    println!("Model: {:?}", args.model);
-    println!("Track: {:?}", args.track);
+    logger.log_info(&format!("Model: {:?}", args.model));
+    logger.log_info(&format!("Track: {:?}", args.track));
 }
