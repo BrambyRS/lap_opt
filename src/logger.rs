@@ -15,6 +15,11 @@ impl Logger {
     }
 
     #[allow(dead_code)]
+    pub fn log_debug(&self, message: &str) {
+        self.base_log("DEBUG", message);
+    }
+
+    #[allow(dead_code)]
     pub fn log_warning(&self, message: &str) {
         self.base_log("WARNING", message);
     }
