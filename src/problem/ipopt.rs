@@ -3,13 +3,13 @@
 use std::os::raw::{c_char, c_double, c_int, c_void};
 
 // IPOPT C API types and constants
-type Index = c_int;
-type Number = c_double;
-type Integer = c_int;
+pub type Index = c_int;
+pub type Number = c_double;
+pub type Integer = c_int;
 
 #[repr(C)]
 #[derive(Debug, PartialEq)]
-enum ApplicationReturnStatus {
+pub enum ApplicationReturnStatus {
     SolveSucceeded = 0,
     SolvedToAcceptableLevel = 1,
     InfeasibleProblemDetected = 2,
@@ -33,7 +33,7 @@ enum ApplicationReturnStatus {
 
 // Callback function type definitions
 // Objective function evaluation
-type EvalF = extern "C" fn(
+pub type EvalF = extern "C" fn(
     n: Index,
     x: *const Number,
     new_x: c_int,
@@ -42,7 +42,7 @@ type EvalF = extern "C" fn(
 ) -> c_int;
 
 // Objective function gradient evaluation
-type EvalGradF = extern "C" fn(
+pub type EvalGradF = extern "C" fn(
     n: Index,
     x: *const Number,
     new_x: c_int,
@@ -51,7 +51,7 @@ type EvalGradF = extern "C" fn(
 ) -> c_int;
 
 // Constraint function evaluation
-type EvalG = extern "C" fn(
+pub type EvalG = extern "C" fn(
     n: Index,
     x: *const Number,
     new_x: c_int,
@@ -61,7 +61,7 @@ type EvalG = extern "C" fn(
 ) -> c_int;
 
 // Constraint Jacobian evaluation
-type EvalJacG = extern "C" fn(
+pub type EvalJacG = extern "C" fn(
     n: Index,
     x: *const Number,
     new_x: c_int,
@@ -74,7 +74,7 @@ type EvalJacG = extern "C" fn(
 ) -> c_int;
 
 // Hessian of the Lagrangian evaluation
-type EvalH = extern "C" fn(
+pub type EvalH = extern "C" fn(
     n: Index,
     x: *const Number,
     new_x: c_int,
@@ -92,7 +92,7 @@ type EvalH = extern "C" fn(
 // IPOPT C API functions
 #[link(name = "ipopt")]
 extern "C" {
-    fn CreateIpoptProblem(
+    pub fn CreateIpoptProblem(
         n: Index,
         x_L: *const Number,
         x_U: *const Number,
@@ -109,19 +109,26 @@ extern "C" {
         eval_h: EvalH,
     ) -> *mut c_void;
 
-    fn FreeIpoptProblem(ipopt_problem: *mut c_void);
+    pub fn FreeIpoptProblem(ipopt_problem: *mut c_void);
 
-    fn AddIpoptStrOption(
+    pub fn AddIpoptStrOption(
         ipopt_problem: *mut c_void,
         keyword: *const c_char,
         val: *const c_char,
     ) -> c_int;
 
-    fn AddIpoptNumOption(ipopt_problem: *mut c_void, keyword: *const c_char, val: Number) -> c_int;
-    fn AddIpoptIntOption(ipopt_problem: *mut c_void, keyword: *const c_char, val: Integer)
-        -> c_int;
+    pub fn AddIpoptNumOption(
+        ipopt_problem: *mut c_void,
+        keyword: *const c_char,
+        val: Number,
+    ) -> c_int;
+    pub fn AddIpoptIntOption(
+        ipopt_problem: *mut c_void,
+        keyword: *const c_char,
+        val: Integer,
+    ) -> c_int;
 
-    fn IpoptSolve(
+    pub fn IpoptSolve(
         ipopt_problem: *mut c_void,
         x: *mut Number,
         g: *mut Number,

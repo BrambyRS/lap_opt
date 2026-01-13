@@ -1,9 +1,9 @@
 use clap::{Parser, ValueEnum};
 
 mod collocation;
-mod ipopt;
 mod logger;
 mod model;
+mod problem;
 mod track;
 
 // Available model types
