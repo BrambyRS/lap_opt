@@ -4,11 +4,10 @@ use crate::{collocation, track};
 use simulation_toolbox::Model;
 
 struct ProblemData<T: Model> {
+    // Core problem properties/components
     model: T,
     track: track::Track,
     quadrature: collocation::FLGR,
-
-    is_initialised: bool,
     is_solved: bool,
 
     initial_solution: Option<Vec<f64>>,
@@ -16,41 +15,26 @@ struct ProblemData<T: Model> {
 }
 
 impl<T: Model> ProblemData<T> {
-    pub fn new(model: T, track: track::Track, quadrature: collocation::FLGR) -> Self {
+    pub fn new(model: T, track: track::Track, quadrature: collocation::FLGR, n_segments: usize) -> Self {
+        // TODO: Initialise problem here
+        
         return ProblemData {
             model,
             track,
             quadrature,
-            is_initialised: false,
             is_solved: false,
             initial_solution: None,
             solution: None,
         };
     }
 
-    pub fn initialise(&mut self, n_segments: usize) -> Result<(), &str> {
-        if self.is_initialised {
-            return Err("ProblemData is already initialised.");
-        }
-
-        self.is_initialised = true;
-        return Ok(());
-    }
-
     pub fn solve(&mut self) -> Result<(), &str> {
-        if !self.is_initialised {
-            return Err("ProblemData is not initialised.");
-        }
         // Solve the problem here
         self.is_solved = true;
         return Ok(());
     }
 
     // Getters
-    pub fn is_initialised(&self) -> bool {
-        return self.is_initialised;
-    }
-
     pub fn is_solved(&self) -> bool {
         return self.is_solved;
     }
@@ -74,9 +58,6 @@ impl<T: Model> ProblemData<T> {
     }
 
     pub fn interpolate_initial_solution(&self, sq: Vec<f64>) -> Option<Vec<f64>> {
-        if !self.is_initialised {
-            return None;
-        }
         return None; // TODO: Implement interpolation logic
     }
 }
