@@ -6,6 +6,7 @@
 pub struct FLGR {
     pub nodes: Vec<f64>,
     pub weights: Vec<f64>,
+    pub n_q: usize,
 }
 
 impl FLGR {
@@ -30,22 +31,27 @@ impl FLGR {
             1 => Some(FLGR {
                 nodes: vec![1.0],
                 weights: vec![2.0],
+                n_q: nq,
             }),
             2 => Some(FLGR {
                 nodes: vec![-0.333333, 1.0],
                 weights: vec![1.5, 0.5],
+                n_q: nq,
             }),
             3 => Some(FLGR {
                 nodes: vec![-0.689898, 0.289898, 1.0],
                 weights: vec![0.752806, 1.02497, 0.222222],
+                n_q: nq,
             }),
             4 => Some(FLGR {
                 nodes: vec![-0.822824, -0.181066, 0.575319, 1.0],
                 weights: vec![0.440924, 0.7763287, 0.657689, 0.125],
+                n_q: nq,
             }),
             5 => Some(FLGR {
                 nodes: vec![-0.885792, -0.446314, 0.167181, -0.72048, -1.0],
                 weights: vec![0.287427, 0.562712, 0.623653, 0.446208, 0.08],
+                n_q: nq,
             }),
             _ => None,
         };
