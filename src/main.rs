@@ -81,5 +81,5 @@ fn main() {
         }
     }
     logger.log_debug(&format!("Collocation nodes s: {:?}", s));
-    let discrete_track: Box<Vec<track::TrackFrame>> = track.discretise(s);
+    let discrete_track: Box<Vec<track::TrackFrame>> = track.discretise(&s);
 }

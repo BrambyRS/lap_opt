@@ -234,9 +234,9 @@ impl Track {
         return Self::new(name, is_closed, n_segments, points);
     }
 
-    pub fn discretise(&self, s_lap_q: Vec<f64>) -> Box<Vec<TrackFrame>> {
+    pub fn discretise(&self, s_lap_q: &Vec<f64>) -> Box<Vec<TrackFrame>> {
         // Validate s_lap_q
-        for &s_lap in &s_lap_q {
+        for &s_lap in s_lap_q {
             if s_lap < 0.0 || s_lap > self.length {
                 panic!("s_lap value {} out of bounds [0, {}]", s_lap, self.length);
             }
@@ -244,7 +244,7 @@ impl Track {
 
         let mut frames: Vec<TrackFrame> = Vec::with_capacity(s_lap_q.len());
 
-        for &s_lap in &s_lap_q {
+        for &s_lap in s_lap_q {
             // Find which segment this s_lap falls into
             let mut s_remaining: f64 = s_lap;
             let mut segment_index: usize = 0;
@@ -437,7 +437,7 @@ mod tests {
     fn test_discretise_straight_track() {
         let track: Track = Track::straight(100.0, 4.0);
         let s_lap_q: Vec<f64> = vec![0.0, 25.0, 50.0, 75.0, 100.0];
-        let frames: Box<Vec<TrackFrame>> = track.discretise(s_lap_q);
+        let frames: Box<Vec<TrackFrame>> = track.discretise(&s_lap_q);
 
         assert_eq!(frames.len(), 5);
         for (i, frame) in frames.iter().enumerate() {
