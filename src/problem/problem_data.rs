@@ -19,7 +19,7 @@ struct ProblemData<T: Model> {
     solution: Option<Vec<f64>>,
 
     // Problem variables
-    x_dec: Vec<f64>, // Decision variables [x0, x1, ..., xn, u0, u1, ..., un]
+    x_dec: Vec<f64>, // Decision variables [x0, u0, x1, u1, ..., xn, un]
 
     // Problem dimensions
     nx_dec: usize, // Number of decision variables
@@ -54,7 +54,6 @@ impl<T: Model> ProblemData<T> {
             initial_solution: None,
             solution: None,
             nx_dec: n_states_dec + n_controls_dec,
-            i_control_offset: n_states_dec,
             x_dec: vec![0.0; n_states_dec + n_controls_dec],
             nnz_jac_g,
             nnz_h_lag,
