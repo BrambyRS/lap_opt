@@ -10,7 +10,7 @@ although the exact objective and contraint functions are implemented in the prob
 above this. */
 pub struct ProblemData<T: Model> {
     // Core problem properties/components
-    model: T,
+    pub model: T,
     track: track::Track,
     quadrature: collocation::FLGR,
     is_solved: bool,
