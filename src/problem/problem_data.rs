@@ -23,7 +23,6 @@ struct ProblemData<T: Model> {
 
     // Problem dimensions
     nx_dec: usize, // Number of decision variables
-    i_control_offset: usize, // Offset to the control variables in the decision variable vector
     nnz_jac_g: usize, // Number of non-zero elements in the Jacobian
     nnz_h_lag: usize, // Number of non-zero elements in the Hessian of the Lagrangian
     
@@ -153,10 +152,6 @@ mod tests {
         // Single quadrature point per segment means as many quadrature points as segments
         // So there should be 2 states + 1 control per segment, plus 2 states + 1 control for the initial point
         // This results in 12 states + 6 controls = 18 decision variables
-        // The offset to the control variables should be 12
         assert_eq!(problem_data.nx_dec, 18);
-        assert_eq!(problem_data.i_control_offset, 12);
-
-        // The jacobian of the constraints
     }
 }
