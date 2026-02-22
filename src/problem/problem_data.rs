@@ -15,10 +15,11 @@ pub struct ProblemData<T: Model> {
     quadrature: collocation::FLGR,
     is_solved: bool,
 
-    s_mesh: Vec<f64>, // The mesh points along the track, including the initial point
-    s_mesh_colloc: Vec<f64>, // The collocation points along the track, including the initial point
-    pub track_mesh: Box<Vec<track::TrackFrame>>, // The mesh points along the track, including the initial point
-    pub n_mesh: usize, // Number of mesh elements (including initial point)
+    s_mesh: Vec<f64>, // The mesh points along the track including the initial point
+    n_segments: usize, // Number of segments the track is divided into
+    s_mesh_colloc: Vec<f64>, // The collocation points along the track excluding the initial point
+    pub track_mesh: Box<Vec<track::TrackFrame>>, // The mesh points along the track excluding the initial point, with track information at each point
+    pub n_mesh: usize, // Number of mesh elements excluding the initial point
 
     initial_solution: Option<Vec<f64>>,
     solution: Option<Vec<f64>>,
@@ -40,14 +41,14 @@ impl<T: Model> ProblemData<T> {
     pub fn new(model: T, track: track::Track, quadrature: collocation::FLGR, n_segments: usize) -> Self {
         
         // Problem dimensions
-        let n_mesh: usize = n_segments * quadrature.n_q + 1; // Total number of mesh points (including initial point)
-        let n_states_dec: usize = model.n_x() * n_mesh; // One per collocation node plus one for the initial point
-        let n_controls_dec: usize = model.n_u() * n_mesh; // One per collocation node plus one for the initial point
+        let n_mesh: usize = n_segments * quadrature.n_q; // Total number of mesh points excluding initial point
+        let n_states_dec: usize = model.n_x() * n_mesh; // One per collocation node
+        let n_controls_dec: usize = model.n_u() * n_mesh; // One per collocation node
         
         // Get track mesh
         let track_length: f64 = track.length();
-        let s_mesh: Vec<f64> = (0..=n_segments).map(|i| i as f64 * track_length / n_segments as f64).collect();
-        let mut s_mesh_colloc: Vec<f64> = Vec::with_capacity(n_segments * quadrature.n_q);
+        let s_mesh: Vec<f64> = (0..=n_segments).map(|i| i as f64 * track_length / n_segments as f64).collect(); // This includes the initial pointat s = 0
+        let mut s_mesh_colloc: Vec<f64> = Vec::with_capacity(n_mesh);
         for i in 0..n_segments {
             let a: f64 = s_mesh[i];
             let b: f64 = s_mesh[i+1];
@@ -73,6 +74,7 @@ impl<T: Model> ProblemData<T> {
             track,
             quadrature,
             s_mesh,
+            n_segments,
             s_mesh_colloc,
             track_mesh,
             n_mesh,
@@ -119,6 +121,17 @@ impl<T: Model> ProblemData<T> {
 
     pub fn interpolate_initial_solution(&self, sq: Vec<f64>) -> Option<Vec<f64>> {
         return None; // TODO: Implement interpolation logic
+    }
+
+    pub fn integrate_cost(&self, cost_per_node: &Vec<f64>) -> f64 {
+        assert_eq!(cost_per_node.len(), self.n_mesh, "Cost per node vector has length {} must have the same length as the number of mesh points {}!", cost_per_node.len(), self.n_mesh);
+        let mut total_cost: f64 = 0.0;
+        
+        for i in 0..self.n_segments {
+            let h: f64 = self.s_mesh[i+1] - self.s_mesh[i];
+            total_cost += self.quadrature.integrate(&cost_per_node[i*self.quadrature.n_q..(i+1)*self.quadrature.n_q].to_vec(), h);
+        }
+        return total_cost;
     }
 }
 
@@ -177,9 +190,9 @@ mod tests {
         let problem_data: ProblemData<PointMass1D> = ProblemData::new(model, track, quadrature, n_segments);
 
         // Single quadrature point per segment means as many quadrature points as segments
-        // So there should be 2 states + 1 control per segment, plus 2 states + 1 control for the initial point
-        // This results in 12 states + 6 controls = 18 decision variables
-        assert_eq!(problem_data.nx_dec, 18);
+        // So there should be 2 states + 1 control per segment
+        // This results in 10 states + 5 controls = 15 decision variables
+        assert_eq!(problem_data.nx_dec, 15);
 
         // With a single quadrature point per element, the s_mesh and s_mesh_colloc should be the same
         // Except for the first element, which is not included in the collocation mesh
