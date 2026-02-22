@@ -15,6 +15,11 @@ pub struct ProblemData<T: Model> {
     quadrature: collocation::FLGR,
     is_solved: bool,
 
+    s_mesh: Vec<f64>, // The mesh points along the track, including the initial point
+    s_mesh_colloc: Vec<f64>, // The collocation points along the track, including the initial point
+    pub track_mesh: Box<Vec<track::TrackFrame>>, // The mesh points along the track, including the initial point
+    pub n_mesh: usize, // Number of mesh elements (including initial point)
+
     initial_solution: Option<Vec<f64>>,
     solution: Option<Vec<f64>>,
 
@@ -34,21 +39,43 @@ pub struct ProblemData<T: Model> {
 impl<T: Model> ProblemData<T> {
     pub fn new(model: T, track: track::Track, quadrature: collocation::FLGR, n_segments: usize) -> Self {
         
-        let n_states_dec: usize = model.n_x() * (n_segments * quadrature.n_q + 1); // One per collocation node plus one for the initial point
-        let n_controls_dec: usize = model.n_u() * (n_segments * quadrature.n_q + 1); // One per collocation node plus one for the initial point
+        // Problem dimensions
+        let n_mesh: usize = n_segments * quadrature.n_q + 1; // Total number of mesh points (including initial point)
+        let n_states_dec: usize = model.n_x() * n_mesh; // One per collocation node plus one for the initial point
+        let n_controls_dec: usize = model.n_u() * n_mesh; // One per collocation node plus one for the initial point
         
+        // Get track mesh
+        let track_length: f64 = track.length();
+        let s_mesh: Vec<f64> = (0..=n_segments).map(|i| i as f64 * track_length / n_segments as f64).collect();
+        let mut s_mesh_colloc: Vec<f64> = Vec::with_capacity(n_segments * quadrature.n_q);
+        for i in 0..n_segments {
+            let a: f64 = s_mesh[i];
+            let b: f64 = s_mesh[i+1];
+            s_mesh_colloc.extend(quadrature.map_nodes(a, b));
+        }
+        let track_mesh: Box<Vec<track::TrackFrame>> = track.discretise(&s_mesh_colloc);
+
         // For now, we're assuming the model jacobian and hessian are dense
         // TODO: Account for the sparsity structure of the model
         let nnz_jac_model: usize = model.n_x() * (model.n_x() + model.n_u() + 1); // +1 for time dependent models
         let nnz_hess_model: usize = (model.n_x() + model.n_u()).pow(2);
 
-        let nnz_jac_g: usize = nnz_jac_model * (n_segments * quadrature.n_q + 1);
-        let nnz_h_lag: usize = nnz_hess_model * (n_segments * quadrature.n_q + 1);
+        let nnz_jac_g: usize = nnz_jac_model * n_mesh;
+        let nnz_h_lag: usize = nnz_hess_model * n_mesh;
+
+        let mut jac_g_shape: Vec<(usize, usize)> = Vec::with_capacity(nnz_jac_g);
+        let mut h_lag_shape: Vec<(usize, usize)> = Vec::with_capacity(nnz_h_lag);
+
+        // TODO: Implement proper sparsity structure generation
 
         return ProblemData {
             model,
             track,
             quadrature,
+            s_mesh,
+            s_mesh_colloc,
+            track_mesh,
+            n_mesh,
             is_solved: false,
             initial_solution: None,
             solution: None,
@@ -56,8 +83,8 @@ impl<T: Model> ProblemData<T> {
             x_dec: vec![0.0; n_states_dec + n_controls_dec],
             nnz_jac_g,
             nnz_h_lag,
-            jac_g_shape: Vec::new(), // Placeholder, to be computed
-            h_lag_shape: Vec::new(), // Placeholder, to be computed
+            jac_g_shape,
+            h_lag_shape,
         };
     }
 
@@ -153,5 +180,13 @@ mod tests {
         // So there should be 2 states + 1 control per segment, plus 2 states + 1 control for the initial point
         // This results in 12 states + 6 controls = 18 decision variables
         assert_eq!(problem_data.nx_dec, 18);
+
+        // With a single quadrature point per element, the s_mesh and s_mesh_colloc should be the same
+        // Except for the first element, which is not included in the collocation mesh
+        assert_eq!(problem_data.s_mesh.len(), n_segments + 1);
+        assert_eq!(problem_data.s_mesh_colloc.len(), n_segments);
+        for i in 0..n_segments {
+            assert!((problem_data.s_mesh[i+1] - problem_data.s_mesh_colloc[i]).abs() < 1e-6);
+        }
     }
 }
