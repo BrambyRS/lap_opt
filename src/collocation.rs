@@ -65,6 +65,16 @@ impl FLGR {
         }
         return mapped_nodes;
     }
+
+    pub fn integrate(&self, nodal_values: &Vec<f64>, h: f64) -> f64 {
+        assert!(nodal_values.len() == self.n_q);
+        
+        let mut total_integral: f64 = 0.0;
+        for i in 0..self.n_q {
+            total_integral += self.weights[i] * nodal_values[i];
+        }
+        return 0.5 * h * total_integral;
+    }
 }
 
 #[cfg(test)]
@@ -107,5 +117,50 @@ mod tests {
                 expected
             );
         }
+    }
+
+    #[test]
+    fn test_integration_biunit_interval() {
+        let collocation: FLGR = match FLGR::new(3) {
+            Some(c) => c,
+            None => panic!("Failed to create FLGR collocation of order 3"),
+        };
+
+        let f = |x: f64| x.powi(2); // Function to integrate
+
+        let nodal_values: Vec<f64> = collocation.nodes.iter().map(|&node| f(node)).collect();
+        let h: f64 = 2.0;
+        let integral: f64 = collocation.integrate(&nodal_values, h);
+        let expected_integral: f64 = 2.0 / 3.0; // Integral of x^2 from -1 to 1
+        assert!(
+            (integral - expected_integral).abs() < 1e-4,
+            "Calculated integral {} does not match expected {}",
+            integral,
+            expected_integral
+        );
+    }
+
+    #[test]
+    fn test_integration_arbitrary_interval() {
+        let collocation: FLGR = match FLGR::new(3) {
+            Some(c) => c,
+            None => panic!("Failed to create FLGR collocation of order 3"),
+        };
+        let a: f64 = 1.0;
+        let b: f64 = 3.0;
+
+        let f = |x: f64| x.powi(2); // Function to integrate
+
+        let mapped_nodes: Vec<f64> = collocation.map_nodes(a, b);
+        let nodal_values: Vec<f64> = mapped_nodes.iter().map(|&node| f(node)).collect();
+        let h: f64 = b - a;
+        let integral: f64 = collocation.integrate(&nodal_values, h);
+        let expected_integral: f64 = (b.powi(3) - a.powi(3)) / 3.0; // Integral of x^2 from a to b
+        assert!(
+            (integral - expected_integral).abs() < 1e-4,
+            "Calculated integral {} does not match expected {}",
+            integral,
+            expected_integral
+        );
     }
 }
