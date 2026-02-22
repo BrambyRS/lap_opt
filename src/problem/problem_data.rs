@@ -8,7 +8,7 @@ It encapsulates the model, track, quadrature scheme, and problem variables.
 The problem structure defintions are written with the lap time optimistaion problem in mind,
 although the exact objective and contraint functions are implemented in the problem module
 above this. */
-struct ProblemData<T: Model> {
+pub struct ProblemData<T: Model> {
     // Core problem properties/components
     model: T,
     track: track::Track,
