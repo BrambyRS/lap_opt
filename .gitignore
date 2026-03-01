@@ -6,6 +6,7 @@
 .DS_Store
 
 # Ignore directories
+.vscode/
 __pycache__/
 target/
 doc/build/
